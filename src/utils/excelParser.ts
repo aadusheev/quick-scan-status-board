@@ -1,3 +1,4 @@
+
 import * as XLSX from 'xlsx';
 import { PackageInfo } from '@/components/StatusDisplay';
 
@@ -13,31 +14,53 @@ export interface ExcelRow {
 export const findPackageByBarcode = (packages: PackageInfo[], scannedValue: string): PackageInfo | null => {
   const normalizedScannedValue = scannedValue.trim().toLowerCase();
   
+  console.log('Searching for scanned value:', normalizedScannedValue);
+  console.log('Available packages data:', packages.map(p => ({
+    barcode: p.barcode,
+    boxNumber: p.boxNumber,
+    shipmentId: p.shipmentId,
+    shipmentNumber: p.shipmentNumber
+  })));
+  
   const found = packages.find(pkg => {
     // Проверяем штрихкод
-    if (pkg.barcode && pkg.barcode.toLowerCase() === normalizedScannedValue) {
+    if (pkg.barcode && pkg.barcode.toLowerCase().trim() === normalizedScannedValue) {
+      console.log('Found by barcode match');
       return true;
     }
     
     // Проверяем номер коробки
-    if (pkg.boxNumber && pkg.boxNumber.toLowerCase() === normalizedScannedValue) {
+    if (pkg.boxNumber && pkg.boxNumber.toLowerCase().trim() === normalizedScannedValue) {
+      console.log('Found by box number match');
       return true;
     }
     
     // Проверяем ID отправления
-    if (pkg.shipmentId && pkg.shipmentId.toLowerCase() === normalizedScannedValue) {
+    if (pkg.shipmentId && pkg.shipmentId.toLowerCase().trim() === normalizedScannedValue) {
+      console.log('Found by shipment ID match');
       return true;
+    }
+    
+    // Проверяем номер отправления (более гибкий поиск)
+    if (pkg.shipmentNumber) {
+      const normalizedShipmentNumber = pkg.shipmentNumber.toLowerCase().trim();
+      // Точное совпадение
+      if (normalizedShipmentNumber === normalizedScannedValue) {
+        console.log('Found by exact shipment number match');
+        return true;
+      }
+      
+      // Частичное совпадение (если отсканированное значение содержится в номере отправления или наоборот)
+      if (normalizedShipmentNumber.includes(normalizedScannedValue) || 
+          normalizedScannedValue.includes(normalizedShipmentNumber)) {
+        console.log('Found by partial shipment number match');
+        return true;
+      }
     }
     
     return false;
   });
   
-  console.log('Searching for scanned value:', normalizedScannedValue);
-  console.log('Available packages data:', packages.map(p => ({
-    barcode: p.barcode,
-    boxNumber: p.boxNumber,
-    shipmentId: p.shipmentId
-  })));
   console.log('Found package:', found);
   
   return found || null;

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Package, AlertTriangle, X, CheckCircle } from 'lucide-react';
 
@@ -15,6 +16,46 @@ interface StatusDisplayProps {
 }
 
 export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastScannedCode }) => {
+  // Определяем какое поле было отсканировано
+  const getScannedFieldType = () => {
+    if (!packageInfo || !lastScannedCode) return null;
+    
+    const normalizedScannedValue = lastScannedCode.trim().toLowerCase();
+    
+    if (packageInfo.barcode && packageInfo.barcode.toLowerCase().trim() === normalizedScannedValue) {
+      return 'barcode';
+    }
+    
+    if (packageInfo.boxNumber && packageInfo.boxNumber.toLowerCase().trim() === normalizedScannedValue) {
+      return 'boxNumber';
+    }
+    
+    if (packageInfo.shipmentId && packageInfo.shipmentId.toLowerCase().trim() === normalizedScannedValue) {
+      return 'shipmentId';
+    }
+    
+    if (packageInfo.shipmentNumber) {
+      const normalizedShipmentNumber = packageInfo.shipmentNumber.toLowerCase().trim();
+      if (normalizedShipmentNumber === normalizedScannedValue || 
+          normalizedShipmentNumber.includes(normalizedScannedValue) || 
+          normalizedScannedValue.includes(normalizedShipmentNumber)) {
+        return 'shipmentNumber';
+      }
+    }
+    
+    return null;
+  };
+
+  const getFieldName = (fieldType: string | null) => {
+    switch (fieldType) {
+      case 'barcode': return 'Штрихкод';
+      case 'boxNumber': return 'Номер коробки';
+      case 'shipmentId': return 'ID отправления';
+      case 'shipmentNumber': return 'Номер отправления';
+      default: return 'Неизвестное поле';
+    }
+  };
+
   const getStatusConfig = () => {
     if (!packageInfo) {
       return {
@@ -22,7 +63,7 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
         bgColor: 'bg-gray-500',
         textColor: 'text-white',
         icon: X,
-        description: 'Штрихкод не найден в загруженном файле'
+        description: 'Значение не найдено в загруженном файле'
       };
     }
 
@@ -86,6 +127,7 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
 
   const statusConfig = getStatusConfig();
   const StatusIcon = statusConfig.icon;
+  const scannedFieldType = getScannedFieldType();
 
   if (!lastScannedCode) {
     return (
@@ -113,24 +155,45 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
 
       {/* Информация о посылке */}
       <div className="p-8 bg-gray-50">
+        {/* Показываем какое поле было отсканировано */}
+        {scannedFieldType && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 font-semibold text-center">
+              Отсканировано поле: {getFieldName(scannedFieldType)}
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Информация о посылке</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Штрихкод:</span>
+                <span className="text-gray-600">Отсканированное значение:</span>
                 <span className="font-mono text-lg">{lastScannedCode}</span>
               </div>
+              {packageInfo?.barcode && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Штрихкод:</span>
+                  <span className={`font-mono ${scannedFieldType === 'barcode' ? 'font-bold text-blue-600' : ''}`}>
+                    {packageInfo.barcode}
+                  </span>
+                </div>
+              )}
               {packageInfo?.boxNumber && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Номер коробки:</span>
-                  <span className="font-semibold">{packageInfo.boxNumber}</span>
+                  <span className={`font-semibold ${scannedFieldType === 'boxNumber' ? 'font-bold text-blue-600' : ''}`}>
+                    {packageInfo.boxNumber}
+                  </span>
                 </div>
               )}
               {packageInfo?.shipmentId && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">ID отправления:</span>
-                  <span className="font-semibold">{packageInfo.shipmentId}</span>
+                  <span className={`font-semibold ${scannedFieldType === 'shipmentId' ? 'font-bold text-blue-600' : ''}`}>
+                    {packageInfo.shipmentId}
+                  </span>
                 </div>
               )}
             </div>
@@ -143,7 +206,9 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
                 {packageInfo.shipmentNumber && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Номер отправления:</span>
-                    <span className="font-semibold">{packageInfo.shipmentNumber}</span>
+                    <span className={`font-semibold ${scannedFieldType === 'shipmentNumber' ? 'font-bold text-blue-600' : ''}`}>
+                      {packageInfo.shipmentNumber}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between">
