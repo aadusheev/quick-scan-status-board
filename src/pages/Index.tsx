@@ -4,9 +4,10 @@ import { FileUpload } from '@/components/FileUpload';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { StatusDisplay, PackageInfo } from '@/components/StatusDisplay';
 import { ScanningControls } from '@/components/ScanningControls';
-import { parseExcelFile, findPackageByBarcode } from '@/utils/excelParser';
+import { parseExcelFile } from '@/utils/excelParser';
 import { exportScanningResults } from '@/utils/excelExporter';
-import { useScanningMode, ScanResult } from '@/hooks/useScanningMode';
+import { useScanningMode } from '@/hooks/useScanningMode';
+import { useBarcodeScanning } from '@/hooks/useBarcodeScanning';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -23,6 +24,12 @@ const Index = () => {
     setPackages,
     clearSession
   } = useScanningMode();
+
+  const { handleBarcodeScanned: processBarcodeScanned } = useBarcodeScanning(
+    scanningState.packages,
+    scanningState.isActive,
+    addScanResult
+  );
 
   const handleFileUpload = async (file: File) => {
     // Блокируем загрузку нового файла во время активного сканирования
@@ -86,91 +93,10 @@ const Index = () => {
   };
 
   const handleBarcodeScanned = useCallback((scannedValue: string) => {
-    console.log('Scanned value:', scannedValue);
-    setLastScannedCode(scannedValue);
-    
-    const foundPackage = findPackageByBarcode(scanningState.packages, scannedValue);
-    setCurrentPackage(foundPackage);
-    
-    // Если сканирование активно, записываем результат
-    if (scanningState.isActive) {
-      let status: string;
-      let isExcess = false;
-      
-      if (foundPackage) {
-        const normalizedStatus = foundPackage.status.toLowerCase().trim();
-        
-        if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ')) {
-          status = 'Недопущенные';
-        } else if (normalizedStatus === 'перелимит' || normalizedStatus.includes('перелимит')) {
-          status = 'Перелимит';
-        } else if (normalizedStatus === 'досмотр' || normalizedStatus.includes('досмотр')) {
-          status = 'Досмотр';
-        } else if (normalizedStatus === '0' || normalizedStatus === 'допущенные' || normalizedStatus === 'допущен' || normalizedStatus.includes('допущ')) {
-          status = 'Допущенные';
-        } else {
-          status = foundPackage.status;
-        }
-      } else {
-        status = 'Излишки';
-        isExcess = true;
-      }
-      
-      const scanResult: ScanResult = {
-        scannedValue,
-        packageInfo: foundPackage,
-        timestamp: new Date(),
-        status,
-        isExcess
-      };
-      
-      addScanResult(scanResult);
-    }
-    
-    // Показываем уведомление
-    if (foundPackage) {
-      const status = foundPackage.status.toLowerCase().trim();
-      
-      console.log('Toast logic - original status:', `"${foundPackage.status}"`, 'normalized:', `"${status}"`);
-      
-      if (status === 'недопущенные' || status === 'недопущен' || status.includes('недопущ')) {
-        toast({
-          title: "❌ Недопущенные",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - недопущена к отправке`,
-          variant: "destructive",
-        });
-      } else if (status === 'перелимит' || status.includes('перелимит')) {
-        toast({
-          title: "❌ Перелимит",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - превышен лимит`,
-          variant: "destructive",
-        });
-      } else if (status === 'досмотр' || status.includes('досмотр')) {
-        toast({
-          title: "⚠️ Досмотр",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - требуется досмотр`,
-          variant: "destructive",
-        });
-      } else if (status === '0' || status === 'допущенные' || status === 'допущен' || status.includes('допущ')) {
-        toast({
-          title: "✅ Допущенные",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - допущена к отправке`,
-        });
-      } else {
-        toast({
-          title: "ℹ️ Статус",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - ${foundPackage.status}`,
-        });
-      }
-    } else {
-      // Показываем статус "Излишки"
-      toast({
-        title: "⚠️ Излишки",
-        description: `Значение ${scannedValue} не найдено в базе - отмечено как излишки`,
-        variant: "destructive",
-      });
-    }
-  }, [scanningState.packages, scanningState.isActive, addScanResult, toast]);
+    const result = processBarcodeScanned(scannedValue);
+    setCurrentPackage(result.packageInfo);
+    setLastScannedCode(result.scannedValue);
+  }, [processBarcodeScanned]);
 
   const handleStartScanning = () => {
     startScanning();

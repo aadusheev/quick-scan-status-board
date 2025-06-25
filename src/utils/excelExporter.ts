@@ -7,39 +7,50 @@ export const exportScanningResults = (
   originalPackages: PackageInfo[],
   scanResults: ScanResult[]
 ) => {
-  // Создаем map для быстрого поиска результатов сканирования
+  // Создаем map для быстрого поиска результатов сканирования по конкретному полю
   const scanResultsMap = new Map<string, ScanResult>();
   
   scanResults.forEach(result => {
-    if (result.packageInfo) {
-      // Используем уникальные идентификаторы для поиска
-      const keys = [
-        result.packageInfo.barcode,
-        result.packageInfo.boxNumber,
-        result.packageInfo.shipmentId,
-        result.packageInfo.shipmentNumber
-      ].filter(Boolean);
+    if (result.packageInfo && result.scannedField) {
+      // Создаем ключ на основе отсканированного поля
+      let key = '';
+      switch (result.scannedField) {
+        case 'barcode':
+          key = `barcode_${result.packageInfo.barcode}`;
+          break;
+        case 'boxNumber':
+          key = `boxNumber_${result.packageInfo.boxNumber}`;
+          break;
+        case 'shipmentId':
+          key = `shipmentId_${result.packageInfo.shipmentId}`;
+          break;
+        case 'shipmentNumber':
+          key = `shipmentNumber_${result.packageInfo.shipmentNumber}`;
+          break;
+      }
       
-      keys.forEach(key => {
-        if (key) {
-          scanResultsMap.set(key.toLowerCase().trim(), result);
-        }
-      });
+      if (key) {
+        scanResultsMap.set(key, result);
+      }
     }
   });
 
   // Подготавливаем данные для экспорта
   const exportData = originalPackages.map(pkg => {
-    // Ищем результат сканирования для этого пакета
-    const scanResult = [
-      pkg.barcode,
-      pkg.boxNumber,
-      pkg.shipmentId,
-      pkg.shipmentNumber
-    ]
-      .filter(Boolean)
-      .map(key => scanResultsMap.get(key!.toLowerCase().trim()))
-      .find(result => result !== undefined);
+    // Ищем результат сканирования для этого пакета по всем возможным ключам
+    let scanResult: ScanResult | undefined;
+    
+    const possibleKeys = [
+      `barcode_${pkg.barcode}`,
+      `boxNumber_${pkg.boxNumber}`,
+      `shipmentId_${pkg.shipmentId}`,
+      `shipmentNumber_${pkg.shipmentNumber}`
+    ].filter(key => key.split('_')[1]); // убираем ключи с пустыми значениями
+    
+    for (const key of possibleKeys) {
+      scanResult = scanResultsMap.get(key);
+      if (scanResult) break;
+    }
 
     return {
       'Номер коробки': pkg.boxNumber || '',
