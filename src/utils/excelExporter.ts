@@ -7,50 +7,18 @@ export const exportScanningResults = (
   originalPackages: PackageInfo[],
   scanResults: ScanResult[]
 ) => {
-  // Создаем map для быстрого поиска результатов сканирования по конкретному полю
-  const scanResultsMap = new Map<string, ScanResult>();
+  // Создаем map для отслеживания каких строк были обработаны
+  const processedRowsMap = new Map<number, ScanResult>();
   
   scanResults.forEach(result => {
-    if (result.packageInfo && result.scannedField) {
-      // Создаем ключ на основе отсканированного поля
-      let key = '';
-      switch (result.scannedField) {
-        case 'barcode':
-          key = `barcode_${result.packageInfo.barcode}`;
-          break;
-        case 'boxNumber':
-          key = `boxNumber_${result.packageInfo.boxNumber}`;
-          break;
-        case 'shipmentId':
-          key = `shipmentId_${result.packageInfo.shipmentId}`;
-          break;
-        case 'shipmentNumber':
-          key = `shipmentNumber_${result.packageInfo.shipmentNumber}`;
-          break;
-      }
-      
-      if (key) {
-        scanResultsMap.set(key, result);
-      }
+    if (result.processedRowIndex !== undefined && !result.isExcess) {
+      processedRowsMap.set(result.processedRowIndex, result);
     }
   });
 
   // Подготавливаем данные для экспорта
-  const exportData = originalPackages.map(pkg => {
-    // Ищем результат сканирования для этого пакета по всем возможным ключам
-    let scanResult: ScanResult | undefined;
-    
-    const possibleKeys = [
-      `barcode_${pkg.barcode}`,
-      `boxNumber_${pkg.boxNumber}`,
-      `shipmentId_${pkg.shipmentId}`,
-      `shipmentNumber_${pkg.shipmentNumber}`
-    ].filter(key => key.split('_')[1]); // убираем ключи с пустыми значениями
-    
-    for (const key of possibleKeys) {
-      scanResult = scanResultsMap.get(key);
-      if (scanResult) break;
-    }
+  const exportData = originalPackages.map((pkg, index) => {
+    const scanResult = processedRowsMap.get(index);
 
     return {
       'Номер коробки': pkg.boxNumber || '',
@@ -69,11 +37,11 @@ export const exportScanningResults = (
     .filter(result => result.isExcess)
     .forEach(result => {
       exportData.push({
-        'Номер коробки': '',
-        'ID отправления': '',
-        'Номер отправления': '',
+        'Номер коробки': result.packageInfo?.boxNumber || '',
+        'ID отправления': result.packageInfo?.shipmentId || '',
+        'Номер отправления': result.packageInfo?.shipmentNumber || '',
         'Штрихкод': result.scannedValue,
-        'Статус отправления': '',
+        'Статус отправления': result.packageInfo?.status || '',
         'Статус сканирования': 'Излишки',
         'Время сканирования': result.timestamp.toLocaleString('ru-RU')
       });

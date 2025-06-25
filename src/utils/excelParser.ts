@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { PackageInfo } from '@/components/StatusDisplay';
 
@@ -11,59 +10,82 @@ export interface ExcelRow {
   [key: string]: any;
 }
 
-export const findPackageByBarcode = (packages: PackageInfo[], scannedValue: string): PackageInfo | null => {
+export interface PackageSearchResult {
+  packageInfo: PackageInfo;
+  scannedField: string;
+  allMatches: Array<{ package: PackageInfo; index: number }>;
+}
+
+export const findPackageByBarcode = (packages: PackageInfo[], scannedValue: string): PackageSearchResult | null => {
   const normalizedScannedValue = scannedValue.trim().toLowerCase();
   
   console.log('Searching for scanned value:', normalizedScannedValue);
-  console.log('Available packages data:', packages.map(p => ({
-    barcode: p.barcode,
-    boxNumber: p.boxNumber,
-    shipmentId: p.shipmentId,
-    shipmentNumber: p.shipmentNumber
-  })));
   
-  const found = packages.find(pkg => {
+  let foundPackage: PackageInfo | null = null;
+  let scannedField = '';
+  let allMatches: Array<{ package: PackageInfo; index: number }> = [];
+  
+  // Ищем все совпадения
+  packages.forEach((pkg, index) => {
     // Проверяем штрихкод
     if (pkg.barcode && pkg.barcode.toLowerCase().trim() === normalizedScannedValue) {
-      console.log('Found by barcode match');
-      return true;
+      if (!foundPackage) {
+        foundPackage = pkg;
+        scannedField = 'barcode';
+      }
+      allMatches.push({ package: pkg, index });
+      return;
     }
     
     // Проверяем номер коробки
     if (pkg.boxNumber && pkg.boxNumber.toLowerCase().trim() === normalizedScannedValue) {
-      console.log('Found by box number match');
-      return true;
+      if (!foundPackage) {
+        foundPackage = pkg;
+        scannedField = 'boxNumber';
+      }
+      allMatches.push({ package: pkg, index });
+      return;
     }
     
     // Проверяем ID отправления
     if (pkg.shipmentId && pkg.shipmentId.toLowerCase().trim() === normalizedScannedValue) {
-      console.log('Found by shipment ID match');
-      return true;
+      if (!foundPackage) {
+        foundPackage = pkg;
+        scannedField = 'shipmentId';
+      }
+      allMatches.push({ package: pkg, index });
+      return;
     }
     
-    // Проверяем номер отправления (более гибкий поиск)
+    // Проверяем номер отправления
     if (pkg.shipmentNumber) {
       const normalizedShipmentNumber = pkg.shipmentNumber.toLowerCase().trim();
-      // Точное совпадение
-      if (normalizedShipmentNumber === normalizedScannedValue) {
-        console.log('Found by exact shipment number match');
-        return true;
-      }
-      
-      // Частичное совпадение (если отсканированное значение содержится в номере отправления или наоборот)
-      if (normalizedShipmentNumber.includes(normalizedScannedValue) || 
+      if (normalizedShipmentNumber === normalizedScannedValue || 
+          normalizedShipmentNumber.includes(normalizedScannedValue) || 
           normalizedScannedValue.includes(normalizedShipmentNumber)) {
-        console.log('Found by partial shipment number match');
-        return true;
+        if (!foundPackage) {
+          foundPackage = pkg;
+          scannedField = 'shipmentNumber';
+        }
+        allMatches.push({ package: pkg, index });
+        return;
       }
     }
-    
-    return false;
   });
   
-  console.log('Found package:', found);
+  if (!foundPackage) {
+    return null;
+  }
   
-  return found || null;
+  console.log('Found package:', foundPackage);
+  console.log('Scanned field:', scannedField);
+  console.log('All matches:', allMatches.length);
+  
+  return {
+    packageInfo: foundPackage,
+    scannedField,
+    allMatches
+  };
 };
 
 export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {

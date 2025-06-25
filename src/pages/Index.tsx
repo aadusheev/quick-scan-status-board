@@ -28,6 +28,7 @@ const Index = () => {
   const { handleBarcodeScanned: processBarcodeScanned } = useBarcodeScanning(
     scanningState.packages,
     scanningState.isActive,
+    scanningState.processedRows,
     addScanResult
   );
 
