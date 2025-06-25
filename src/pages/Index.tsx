@@ -1,11 +1,125 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React, { useState } from 'react';
+import { FileUpload } from '@/components/FileUpload';
+import { BarcodeScanner } from '@/components/BarcodeScanner';
+import { StatusDisplay, PackageInfo } from '@/components/StatusDisplay';
+import { parseExcelFile, findPackageByBarcode } from '@/utils/excelParser';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const [packages, setPackages] = useState<PackageInfo[]>([]);
+  const [currentPackage, setCurrentPackage] = useState<PackageInfo | null>(null);
+  const [lastScannedCode, setLastScannedCode] = useState<string>('');
+  const [hasFile, setHasFile] = useState(false);
+  const { toast } = useToast();
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      toast({
+        title: "Загрузка файла",
+        description: "Обработка Excel файла...",
+      });
+
+      const parsedPackages = await parseExcelFile(file);
+      
+      if (parsedPackages.length === 0) {
+        toast({
+          title: "Предупреждение",
+          description: "В файле не найдено данных о посылках",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPackages(parsedPackages);
+      setHasFile(true);
+      setCurrentPackage(null);
+      setLastScannedCode('');
+      
+      toast({
+        title: "Файл загружен",
+        description: `Обработано ${parsedPackages.length} записей`,
+      });
+
+      console.log('Loaded packages:', parsedPackages);
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить файл. Проверьте формат данных.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBarcodeScanned = (barcode: string) => {
+    console.log('Scanned barcode:', barcode);
+    setLastScannedCode(barcode);
+    
+    const foundPackage = findPackageByBarcode(packages, barcode);
+    setCurrentPackage(foundPackage);
+    
+    // Показываем уведомление
+    if (foundPackage) {
+      const status = foundPackage.status.toLowerCase();
+      if (status.includes('готов') || status.includes('отправ')) {
+        toast({
+          title: "✅ Готово к отправке",
+          description: `Коробка ${foundPackage.boxNumber || 'без номера'}`,
+        });
+      } else if (status.includes('досмотр')) {
+        toast({
+          title: "⚠️ Требуется досмотр",
+          description: `Коробка ${foundPackage.boxNumber || 'без номера'}`,
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "❌ Не найдено",
+        description: `Штрихкод ${barcode} не найден в базе`,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Заголовок */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            Система сканирования посылок
+          </h1>
+          <p className="text-lg text-gray-600">
+            Внутренний сервис логистического склада
+          </p>
+        </div>
+
+        {/* Загрузка файла */}
+        <FileUpload onFileUpload={handleFileUpload} hasFile={hasFile} />
+
+        {/* Сканер штрихкодов */}
+        <BarcodeScanner 
+          onScan={handleBarcodeScanned} 
+          disabled={!hasFile}
+        />
+
+        {/* Отображение статуса */}
+        <StatusDisplay 
+          packageInfo={currentPackage}
+          lastScannedCode={lastScannedCode}
+        />
+
+        {/* Информация о загруженных данных */}
+        {hasFile && (
+          <div className="mt-6 bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>Загружено записей: {packages.length}</span>
+              <span>Готов к сканированию</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
