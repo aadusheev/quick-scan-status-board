@@ -98,7 +98,7 @@ export const useScanningMode = () => {
     const newState = {
       ...scanningState,
       packages,
-      processedPackageIndices: new Set() // сбрасываем при загрузке новых пакетов
+      processedPackageIndices: new Set<number>() // сбрасываем при загрузке новых пакетов
     };
     setScanningState(newState);
     saveToStorage(newState);
