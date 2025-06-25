@@ -27,28 +27,42 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
       };
     }
 
-    const status = packageInfo.status.toLowerCase();
+    const status = packageInfo.status.toLowerCase().trim();
     
-    if (status.includes('готов') || status.includes('отправ') || status.includes('ready')) {
+    // Допущенные (зеленый)
+    if (status === '0' || status === 'допущенные' || status === 'допущен' || status.includes('допущ')) {
       return {
-        text: 'ГОТОВО К ОТПРАВКЕ',
+        text: 'ДОПУЩЕННЫЕ',
         bgColor: 'bg-green-500',
         textColor: 'text-white',
         icon: CheckCircle,
-        description: 'Посылка готова к отправке'
+        description: 'Посылка допущена к отправке'
       };
     }
     
-    if (status.includes('досмотр') || status.includes('проверк') || status.includes('inspection')) {
+    // Недопущенные (красный)
+    if (status === 'недопущенные' || status === 'недопущен' || status.includes('недопущ')) {
+      return {
+        text: 'НЕДОПУЩЕННЫЕ',
+        bgColor: 'bg-red-500',
+        textColor: 'text-white',
+        icon: X,
+        description: 'Посылка недопущена к отправке'
+      };
+    }
+    
+    // Досмотр (желтый)
+    if (status === 'досмотр' || status.includes('досмотр')) {
       return {
         text: 'ДОСМОТР',
-        bgColor: status.includes('срочн') ? 'bg-red-500' : 'bg-orange-500',
+        bgColor: 'bg-yellow-500',
         textColor: 'text-white',
         icon: AlertTriangle,
         description: 'Требуется досмотр посылки'
       };
     }
     
+    // Статус по умолчанию
     return {
       text: packageInfo.status.toUpperCase(),
       bgColor: 'bg-blue-500',

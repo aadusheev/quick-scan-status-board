@@ -44,7 +44,7 @@ export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {
         console.log('First row keys:', Object.keys(firstRow));
         console.log('First row data:', firstRow);
         
-        // Ищем возможные варианты названий колонок
+        // Ищем возможные варианты названий колонок (русские и английские)
         const findColumn = (possibleNames: string[]) => {
           const keys = Object.keys(firstRow);
           for (const name of possibleNames) {
@@ -57,11 +57,21 @@ export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {
           return null;
         };
         
-        const barcodeColumn = findColumn(['штрихкод', 'штрих-код', 'barcode', 'код']);
-        const boxColumn = findColumn(['номер коробки', 'коробка', 'box']);
-        const shipmentIdColumn = findColumn(['id отправления', 'id']);
-        const shipmentNumberColumn = findColumn(['номер отправления', 'отправление', 'shipment']);
-        const statusColumn = findColumn(['статус', 'status']);
+        const barcodeColumn = findColumn([
+          'штрихкод', 'штрих-код', 'штрих код', 'barcode', 'код', 'Штрихкод', 'Штрих-код'
+        ]);
+        const boxColumn = findColumn([
+          'номер коробки', 'коробка', 'box', 'Номер коробки', 'коробка'
+        ]);
+        const shipmentIdColumn = findColumn([
+          'id отправления', 'id', 'ID отправления', 'ИД отправления'
+        ]);
+        const shipmentNumberColumn = findColumn([
+          'номер отправления', 'отправление', 'shipment', 'Номер отправления'
+        ]);
+        const statusColumn = findColumn([
+          'статус', 'status', 'Статус', 'статус отправления', 'Статус отправления'
+        ]);
         
         console.log('Found columns:', {
           barcode: barcodeColumn,
@@ -73,7 +83,7 @@ export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {
         
         if (!barcodeColumn) {
           console.error('Barcode column not found. Available columns:', Object.keys(firstRow));
-          reject(new Error('Не найдена колонка со штрихкодом. Проверьте названия колонок в Excel файле.'));
+          reject(new Error('Не найдена колонка со штрихкодом. Проверьте названия колонок в Excel файле. Ожидаемые названия: "Штрихкод", "Штрих-код", "Barcode", "Код"'));
           return;
         }
         
