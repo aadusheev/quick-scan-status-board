@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Package, AlertTriangle, X, CheckCircle } from 'lucide-react';
 
@@ -39,6 +38,17 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
         textColor: 'text-white',
         icon: X,
         description: 'Посылка недопущена к отправке'
+      };
+    }
+    
+    // Перелимит (красный)
+    if (status === 'перелимит' || status.includes('перелимит')) {
+      return {
+        text: 'ПЕРЕЛИМИТ',
+        bgColor: 'bg-red-500',
+        textColor: 'text-white',
+        icon: X,
+        description: 'Превышен лимит по посылке'
       };
     }
     

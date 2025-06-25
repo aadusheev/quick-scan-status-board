@@ -83,6 +83,12 @@ const Index = () => {
           description: `Коробка ${foundPackage.boxNumber || 'без номера'} - недопущена к отправке`,
           variant: "destructive",
         });
+      } else if (status === 'перелимит' || status.includes('перелимит')) {
+        toast({
+          title: "❌ Перелимит",
+          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - превышен лимит`,
+          variant: "destructive",
+        });
       } else if (status === 'досмотр' || status.includes('досмотр')) {
         toast({
           title: "⚠️ Досмотр",
