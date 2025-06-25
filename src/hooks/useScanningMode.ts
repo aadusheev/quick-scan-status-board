@@ -7,8 +7,7 @@ export interface ScanResult {
   packageInfo: PackageInfo | null;
   timestamp: Date;
   status: string;
-  isExcess: boolean;
-  processedRowIndex?: number; // добавляем индекс обработанной строки
+  isExcess: boolean; // для излишков
 }
 
 export interface ScanningState {
@@ -16,7 +15,6 @@ export interface ScanningState {
   startTime: Date | null;
   scanResults: ScanResult[];
   packages: PackageInfo[];
-  processedPackageIndices: Set<number>; // отслеживаем обработанные строки
 }
 
 const STORAGE_KEY = 'scanning-session';
@@ -26,8 +24,7 @@ export const useScanningMode = () => {
     isActive: false,
     startTime: null,
     scanResults: [],
-    packages: [],
-    processedPackageIndices: new Set()
+    packages: []
   });
 
   // Загрузка данных из LocalStorage при инициализации
@@ -42,8 +39,7 @@ export const useScanningMode = () => {
           scanResults: parsed.scanResults.map((result: any) => ({
             ...result,
             timestamp: new Date(result.timestamp)
-          })),
-          processedPackageIndices: new Set(parsed.processedPackageIndices || [])
+          }))
         });
       } catch (error) {
         console.error('Error loading scanning state:', error);
@@ -53,11 +49,7 @@ export const useScanningMode = () => {
 
   // Сохранение в LocalStorage при изменении состояния
   const saveToStorage = useCallback((state: ScanningState) => {
-    const stateToSave = {
-      ...state,
-      processedPackageIndices: Array.from(state.processedPackageIndices)
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, []);
 
   const startScanning = useCallback(() => {
@@ -79,16 +71,10 @@ export const useScanningMode = () => {
     saveToStorage(newState);
   }, [scanningState, saveToStorage]);
 
-  const addScanResult = useCallback((result: ScanResult, packageIndex?: number) => {
-    const newProcessedIndices = new Set(scanningState.processedPackageIndices);
-    if (packageIndex !== undefined) {
-      newProcessedIndices.add(packageIndex);
-    }
-
+  const addScanResult = useCallback((result: ScanResult) => {
     const newState = {
       ...scanningState,
-      scanResults: [...scanningState.scanResults, result],
-      processedPackageIndices: newProcessedIndices
+      scanResults: [...scanningState.scanResults, result]
     };
     setScanningState(newState);
     saveToStorage(newState);
@@ -97,8 +83,7 @@ export const useScanningMode = () => {
   const setPackages = useCallback((packages: PackageInfo[]) => {
     const newState = {
       ...scanningState,
-      packages,
-      processedPackageIndices: new Set<number>() // сбрасываем при загрузке новых пакетов
+      packages
     };
     setScanningState(newState);
     saveToStorage(newState);
@@ -110,8 +95,7 @@ export const useScanningMode = () => {
       isActive: false,
       startTime: null,
       scanResults: [],
-      packages: [],
-      processedPackageIndices: new Set()
+      packages: []
     });
   }, []);
 

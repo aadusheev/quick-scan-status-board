@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Package, AlertTriangle, X, CheckCircle } from 'lucide-react';
 
@@ -7,7 +8,6 @@ export interface PackageInfo {
   shipmentNumber?: string;
   barcode: string;
   status: string;
-  rowIndex?: number; // добавляем индекс строки
 }
 
 interface StatusDisplayProps {
