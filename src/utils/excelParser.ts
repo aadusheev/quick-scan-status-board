@@ -24,27 +24,85 @@ export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
+        console.log('Available sheets:', workbook.SheetNames);
+        console.log('Processing sheet:', firstSheetName);
+        
         // Конвертируем в JSON
         const jsonData: ExcelRow[] = XLSX.utils.sheet_to_json(worksheet);
         
-        console.log('Parsed Excel data:', jsonData);
+        console.log('Raw Excel data:', jsonData);
+        console.log('Number of rows:', jsonData.length);
+        
+        if (jsonData.length === 0) {
+          console.error('No data found in Excel file');
+          reject(new Error('Excel файл пустой или не содержит данных'));
+          return;
+        }
+        
+        // Проверяем первую строку для анализа колонок
+        const firstRow = jsonData[0];
+        console.log('First row keys:', Object.keys(firstRow));
+        console.log('First row data:', firstRow);
+        
+        // Ищем возможные варианты названий колонок
+        const findColumn = (possibleNames: string[]) => {
+          const keys = Object.keys(firstRow);
+          for (const name of possibleNames) {
+            const found = keys.find(key => 
+              key.toLowerCase().includes(name.toLowerCase()) ||
+              name.toLowerCase().includes(key.toLowerCase())
+            );
+            if (found) return found;
+          }
+          return null;
+        };
+        
+        const barcodeColumn = findColumn(['штрихкод', 'штрих-код', 'barcode', 'код']);
+        const boxColumn = findColumn(['номер коробки', 'коробка', 'box']);
+        const shipmentIdColumn = findColumn(['id отправления', 'id']);
+        const shipmentNumberColumn = findColumn(['номер отправления', 'отправление', 'shipment']);
+        const statusColumn = findColumn(['статус', 'status']);
+        
+        console.log('Found columns:', {
+          barcode: barcodeColumn,
+          box: boxColumn,
+          shipmentId: shipmentIdColumn,
+          shipmentNumber: shipmentNumberColumn,
+          status: statusColumn
+        });
+        
+        if (!barcodeColumn) {
+          console.error('Barcode column not found. Available columns:', Object.keys(firstRow));
+          reject(new Error('Не найдена колонка со штрихкодом. Проверьте названия колонок в Excel файле.'));
+          return;
+        }
         
         // Преобразуем в нужный формат
         const packages: PackageInfo[] = jsonData
-          .filter(row => row['Штрихкод']) // Фильтруем строки без штрихкода
+          .filter(row => {
+            const barcode = row[barcodeColumn!];
+            return barcode && barcode.toString().trim() !== '';
+          })
           .map(row => ({
-            boxNumber: row['Номер коробки']?.toString() || '',
-            shipmentId: row['ID отправления']?.toString() || '',
-            shipmentNumber: row['Номер отправления']?.toString() || '',
-            barcode: row['Штрихкод']?.toString() || '',
-            status: row['Статус отправления']?.toString() || 'Неизвестен'
+            boxNumber: boxColumn ? row[boxColumn]?.toString() || '' : '',
+            shipmentId: shipmentIdColumn ? row[shipmentIdColumn]?.toString() || '' : '',
+            shipmentNumber: shipmentNumberColumn ? row[shipmentNumberColumn]?.toString() || '' : '',
+            barcode: row[barcodeColumn!]?.toString() || '',
+            status: statusColumn ? row[statusColumn]?.toString() || 'Неизвестен' : 'Неизвестен'
           }));
         
         console.log('Processed packages:', packages);
+        console.log('Total packages processed:', packages.length);
+        
+        if (packages.length === 0) {
+          reject(new Error('В файле не найдено строк с заполненными штрихкодами'));
+          return;
+        }
+        
         resolve(packages);
       } catch (error) {
         console.error('Error parsing Excel file:', error);
-        reject(new Error('Ошибка при обработке Excel файла'));
+        reject(new Error(`Ошибка при обработке Excel файла: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`));
       }
     };
     
@@ -64,6 +122,7 @@ export const findPackageByBarcode = (packages: PackageInfo[], barcode: string): 
   );
   
   console.log('Searching for barcode:', normalizedBarcode);
+  console.log('Available barcodes:', packages.map(p => p.barcode));
   console.log('Found package:', found);
   
   return found || null;

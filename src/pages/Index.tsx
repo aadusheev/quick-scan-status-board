@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -15,6 +14,8 @@ const Index = () => {
 
   const handleFileUpload = async (file: File) => {
     try {
+      console.log('Starting file upload:', file.name, file.size, 'bytes');
+      
       toast({
         title: "Загрузка файла",
         description: "Обработка Excel файла...",
@@ -22,10 +23,12 @@ const Index = () => {
 
       const parsedPackages = await parseExcelFile(file);
       
+      console.log('File parsed successfully, packages:', parsedPackages.length);
+      
       if (parsedPackages.length === 0) {
         toast({
           title: "Предупреждение",
-          description: "В файле не найдено данных о посылках",
+          description: "В файле не найдено данных о посылках с заполненными штрихкодами",
           variant: "destructive",
         });
         return;
@@ -38,17 +41,25 @@ const Index = () => {
       
       toast({
         title: "Файл загружен",
-        description: `Обработано ${parsedPackages.length} записей`,
+        description: `Успешно обработано ${parsedPackages.length} записей`,
       });
 
       console.log('Loaded packages:', parsedPackages);
     } catch (error) {
       console.error('File upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      
       toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить файл. Проверьте формат данных.",
+        title: "Ошибка загрузки файла",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // Сбрасываем состояние при ошибке
+      setPackages([]);
+      setHasFile(false);
+      setCurrentPackage(null);
+      setLastScannedCode('');
     }
   };
 
