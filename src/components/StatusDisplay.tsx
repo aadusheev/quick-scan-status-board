@@ -59,11 +59,11 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
   const getStatusConfig = () => {
     if (!packageInfo) {
       return {
-        text: 'НЕ НАЙДЕНО',
-        bgColor: 'bg-gray-500',
-        textColor: 'text-white',
-        icon: X,
-        description: 'Значение не найдено в загруженном файле'
+        text: 'ИЗЛИШКИ',
+        bgColor: 'bg-yellow-400',
+        textColor: 'text-black',
+        icon: AlertTriangle,
+        description: 'Отправление не найдено в базе - излишки'
       };
     }
 
