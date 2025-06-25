@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { PackageInfo } from '@/components/StatusDisplay';
 
@@ -10,6 +9,39 @@ export interface ExcelRow {
   'Статус отправления'?: string;
   [key: string]: any;
 }
+
+export const findPackageByBarcode = (packages: PackageInfo[], scannedValue: string): PackageInfo | null => {
+  const normalizedScannedValue = scannedValue.trim().toLowerCase();
+  
+  const found = packages.find(pkg => {
+    // Проверяем штрихкод
+    if (pkg.barcode && pkg.barcode.toLowerCase() === normalizedScannedValue) {
+      return true;
+    }
+    
+    // Проверяем номер коробки
+    if (pkg.boxNumber && pkg.boxNumber.toLowerCase() === normalizedScannedValue) {
+      return true;
+    }
+    
+    // Проверяем ID отправления
+    if (pkg.shipmentId && pkg.shipmentId.toLowerCase() === normalizedScannedValue) {
+      return true;
+    }
+    
+    return false;
+  });
+  
+  console.log('Searching for scanned value:', normalizedScannedValue);
+  console.log('Available packages data:', packages.map(p => ({
+    barcode: p.barcode,
+    boxNumber: p.boxNumber,
+    shipmentId: p.shipmentId
+  })));
+  console.log('Found package:', found);
+  
+  return found || null;
+};
 
 export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {
   return new Promise((resolve, reject) => {
@@ -81,23 +113,30 @@ export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {
           status: statusColumn
         });
         
-        if (!barcodeColumn) {
-          console.error('Barcode column not found. Available columns:', Object.keys(firstRow));
-          reject(new Error('Не найдена колонка со штрихкодом. Проверьте названия колонок в Excel файле. Ожидаемые названия: "Штрихкод", "Штрих-код", "Barcode", "Код"'));
+        // Теперь мы принимаем записи, если есть хотя бы одно из полей: штрихкод, номер коробки или ID отправления
+        if (!barcodeColumn && !boxColumn && !shipmentIdColumn) {
+          console.error('None of the required columns found. Available columns:', Object.keys(firstRow));
+          reject(new Error('Не найдены обязательные колонки. Проверьте названия колонок в Excel файле. Ожидаемые названия: "Штрихкод", "Номер коробки", "ID отправления"'));
           return;
         }
         
         // Преобразуем в нужный формат
         const packages: PackageInfo[] = jsonData
           .filter(row => {
-            const barcode = row[barcodeColumn!];
-            return barcode && barcode.toString().trim() !== '';
+            // Проверяем, что есть хотя бы одно из полей для поиска
+            const barcode = barcodeColumn ? row[barcodeColumn] : null;
+            const boxNumber = boxColumn ? row[boxColumn] : null;
+            const shipmentId = shipmentIdColumn ? row[shipmentIdColumn] : null;
+            
+            return (barcode && barcode.toString().trim() !== '') ||
+                   (boxNumber && boxNumber.toString().trim() !== '') ||
+                   (shipmentId && shipmentId.toString().trim() !== '');
           })
           .map(row => ({
             boxNumber: boxColumn ? row[boxColumn]?.toString() || '' : '',
             shipmentId: shipmentIdColumn ? row[shipmentIdColumn]?.toString() || '' : '',
             shipmentNumber: shipmentNumberColumn ? row[shipmentNumberColumn]?.toString() || '' : '',
-            barcode: row[barcodeColumn!]?.toString() || '',
+            barcode: barcodeColumn ? row[barcodeColumn]?.toString() || '' : '',
             status: statusColumn ? row[statusColumn]?.toString() || 'Неизвестен' : 'Неизвестен'
           }));
         
@@ -105,7 +144,7 @@ export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {
         console.log('Total packages processed:', packages.length);
         
         if (packages.length === 0) {
-          reject(new Error('В файле не найдено строк с заполненными штрихкодами'));
+          reject(new Error('В файле не найдено строк с заполненными полями для поиска (штрихкод, номер коробки или ID отправления)'));
           return;
         }
         
@@ -122,18 +161,4 @@ export const parseExcelFile = async (file: File): Promise<PackageInfo[]> => {
     
     reader.readAsBinaryString(file);
   });
-};
-
-export const findPackageByBarcode = (packages: PackageInfo[], barcode: string): PackageInfo | null => {
-  const normalizedBarcode = barcode.trim().toLowerCase();
-  
-  const found = packages.find(pkg => 
-    pkg.barcode.toLowerCase() === normalizedBarcode
-  );
-  
-  console.log('Searching for barcode:', normalizedBarcode);
-  console.log('Available barcodes:', packages.map(p => p.barcode));
-  console.log('Found package:', found);
-  
-  return found || null;
 };

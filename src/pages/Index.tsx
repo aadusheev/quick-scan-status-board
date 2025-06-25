@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -28,7 +29,7 @@ const Index = () => {
       if (parsedPackages.length === 0) {
         toast({
           title: "Предупреждение",
-          description: "В файле не найдено данных о посылках с заполненными штрихкодами",
+          description: "В файле не найдено данных о посылках с заполненными полями для поиска",
           variant: "destructive",
         });
         return;
@@ -63,11 +64,11 @@ const Index = () => {
     }
   };
 
-  const handleBarcodeScanned = (barcode: string) => {
-    console.log('Scanned barcode:', barcode);
-    setLastScannedCode(barcode);
+  const handleBarcodeScanned = (scannedValue: string) => {
+    console.log('Scanned value:', scannedValue);
+    setLastScannedCode(scannedValue);
     
-    const foundPackage = findPackageByBarcode(packages, barcode);
+    const foundPackage = findPackageByBarcode(packages, scannedValue);
     setCurrentPackage(foundPackage);
     
     // Показываем уведомление с исправленной логикой статусов
@@ -109,7 +110,7 @@ const Index = () => {
     } else {
       toast({
         title: "❌ Не найдено",
-        description: `Штрихкод ${barcode} не найден в базе`,
+        description: `Значение ${scannedValue} не найдено в базе`,
         variant: "destructive",
       });
     }
@@ -148,7 +149,7 @@ const Index = () => {
           <div className="mt-6 bg-white rounded-lg shadow-md p-4">
             <div className="flex items-center justify-between text-sm text-gray-600">
               <span>Загружено записей: {packages.length}</span>
-              <span>Готов к сканированию</span>
+              <span>Готов к сканированию по штрихкоду, номеру коробки или ID отправления</span>
             </div>
           </div>
         )}

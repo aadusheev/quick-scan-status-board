@@ -56,7 +56,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, disabled
         }`} />
         <div className="flex-1 max-w-md">
           <label htmlFor="barcode-input" className="block text-lg font-semibold text-gray-800 mb-2">
-            Сканировать штрихкод
+            Сканировать код
           </label>
           <input
             id="barcode-input"
@@ -65,7 +65,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, disabled
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
             disabled={disabled}
-            placeholder={disabled ? "Сначала загрузите файл" : "Поднесите сканер или введите код"}
+            placeholder={disabled ? "Сначала загрузите файл" : "Штрихкод, номер коробки или ID отправления"}
             className={`w-full px-4 py-3 text-lg border-2 rounded-lg focus:outline-none transition-colors ${
               disabled 
                 ? 'bg-gray-100 border-gray-300 text-gray-500' 
