@@ -29,18 +29,9 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
 
     const status = packageInfo.status.toLowerCase().trim();
     
-    // Допущенные (зеленый)
-    if (status === '0' || status === 'допущенные' || status === 'допущен' || status.includes('допущ')) {
-      return {
-        text: 'ДОПУЩЕННЫЕ',
-        bgColor: 'bg-green-500',
-        textColor: 'text-white',
-        icon: CheckCircle,
-        description: 'Посылка допущена к отправке'
-      };
-    }
+    console.log('Processing status:', `"${packageInfo.status}"`, 'normalized:', `"${status}"`);
     
-    // Недопущенные (красный)
+    // Недопущенные (красный) - проверяем ПЕРВЫМИ
     if (status === 'недопущенные' || status === 'недопущен' || status.includes('недопущ')) {
       return {
         text: 'НЕДОПУЩЕННЫЕ',
@@ -62,7 +53,18 @@ export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastS
       };
     }
     
-    // Статус по умолчанию
+    // Допущенные (зеленый) - проверяем ПОСЛЕ недопущенных
+    if (status === '0' || status === 'допущенные' || status === 'допущен' || status.includes('допущ')) {
+      return {
+        text: 'ДОПУЩЕННЫЕ',
+        bgColor: 'bg-green-500',
+        textColor: 'text-white',
+        icon: CheckCircle,
+        description: 'Посылка допущена к отправке'
+      };
+    }
+    
+    // Статус по умолчанию для неизвестных статусов
     return {
       text: packageInfo.status.toUpperCase(),
       bgColor: 'bg-blue-500',

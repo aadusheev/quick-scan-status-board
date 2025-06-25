@@ -70,16 +70,14 @@ const Index = () => {
     const foundPackage = findPackageByBarcode(packages, barcode);
     setCurrentPackage(foundPackage);
     
-    // Показываем уведомление с новой логикой статусов
+    // Показываем уведомление с исправленной логикой статусов
     if (foundPackage) {
       const status = foundPackage.status.toLowerCase().trim();
       
-      if (status === '0' || status === 'допущенные' || status === 'допущен' || status.includes('допущ')) {
-        toast({
-          title: "✅ Допущенные",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - допущена к отправке`,
-        });
-      } else if (status === 'недопущенные' || status === 'недопущен' || status.includes('недопущ')) {
+      console.log('Toast logic - original status:', `"${foundPackage.status}"`, 'normalized:', `"${status}"`);
+      
+      // Недопущенные - проверяем ПЕРВЫМИ
+      if (status === 'недопущенные' || status === 'недопущен' || status.includes('недопущ')) {
         toast({
           title: "❌ Недопущенные",
           description: `Коробка ${foundPackage.boxNumber || 'без номера'} - недопущена к отправке`,
@@ -90,6 +88,11 @@ const Index = () => {
           title: "⚠️ Досмотр",
           description: `Коробка ${foundPackage.boxNumber || 'без номера'} - требуется досмотр`,
           variant: "destructive",
+        });
+      } else if (status === '0' || status === 'допущенные' || status === 'допущен' || status.includes('допущ')) {
+        toast({
+          title: "✅ Допущенные",
+          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - допущена к отправке`,
         });
       } else {
         toast({
