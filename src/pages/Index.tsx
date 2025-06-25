@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -89,16 +88,38 @@ const Index = () => {
     console.log('Scanned value:', scannedValue);
     setLastScannedCode(scannedValue);
     
-    const foundPackage = findPackageByBarcode(scanningState.packages, scannedValue);
+    // Проверяем, активно ли сканирование
+    if (!scanningState.isActive) {
+      toast({
+        title: "❌ Не начато сканирование",
+        description: "Нажмите 'Начать сканирование' для активации режима",
+        variant: "destructive",
+      });
+      setCurrentPackage(null);
+      return;
+    }
+
+    const searchResult = findPackageByBarcode(scanningState.packages, scannedValue);
+    const { package: foundPackage, packageIndex, allMatches } = searchResult;
+    
     setCurrentPackage(foundPackage);
     
-    // Если сканирование активно, записываем результат
-    if (scanningState.isActive) {
-      let status: string;
-      let isExcess = false;
+    let status: string;
+    let isExcess = false;
+    let processedRowIndex: number | undefined;
+    
+    if (foundPackage && allMatches.length > 0) {
+      // Ищем первую необработанную строку среди совпадений
+      const unprocessedMatch = allMatches.find(match => 
+        !scanningState.processedPackageIndices.has(match.index)
+      );
       
-      if (foundPackage) {
-        const normalizedStatus = foundPackage.status.toLowerCase().trim();
+      if (unprocessedMatch) {
+        // Есть необработанная строка - обрабатываем её
+        const pkg = unprocessedMatch.package;
+        processedRowIndex = unprocessedMatch.index;
+        
+        const normalizedStatus = pkg.status.toLowerCase().trim();
         
         if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ')) {
           status = 'Недопущенные';
@@ -109,49 +130,53 @@ const Index = () => {
         } else if (normalizedStatus === '0' || normalizedStatus === 'допущенные' || normalizedStatus === 'допущен' || normalizedStatus.includes('допущ')) {
           status = 'Допущенные';
         } else {
-          status = foundPackage.status;
+          status = pkg.status;
         }
       } else {
+        // Все строки уже обработаны - это излишки
         status = 'Излишки';
         isExcess = true;
       }
-      
-      const scanResult: ScanResult = {
-        scannedValue,
-        packageInfo: foundPackage,
-        timestamp: new Date(),
-        status,
-        isExcess
-      };
-      
-      addScanResult(scanResult);
+    } else {
+      // Не найдено совпадений - это излишки
+      status = 'Излишки';
+      isExcess = true;
     }
     
+    const scanResult: ScanResult = {
+      scannedValue,
+      packageInfo: foundPackage,
+      timestamp: new Date(),
+      status,
+      isExcess,
+      processedRowIndex
+    };
+    
+    addScanResult(scanResult, processedRowIndex);
+    
     // Показываем уведомление
-    if (foundPackage) {
-      const status = foundPackage.status.toLowerCase().trim();
+    if (foundPackage && !isExcess) {
+      const statusLower = status.toLowerCase();
       
-      console.log('Toast logic - original status:', `"${foundPackage.status}"`, 'normalized:', `"${status}"`);
-      
-      if (status === 'недопущенные' || status === 'недопущен' || status.includes('недопущ')) {
+      if (statusLower.includes('недопущ')) {
         toast({
           title: "❌ Недопущенные",
           description: `Коробка ${foundPackage.boxNumber || 'без номера'} - недопущена к отправке`,
           variant: "destructive",
         });
-      } else if (status === 'перелимит' || status.includes('перелимит')) {
+      } else if (statusLower.includes('перелимит')) {
         toast({
           title: "❌ Перелимит",
           description: `Коробка ${foundPackage.boxNumber || 'без номера'} - превышен лимит`,
           variant: "destructive",
         });
-      } else if (status === 'досмотр' || status.includes('досмотр')) {
+      } else if (statusLower.includes('досмотр')) {
         toast({
           title: "⚠️ Досмотр",
           description: `Коробка ${foundPackage.boxNumber || 'без номера'} - требуется досмотр`,
           variant: "destructive",
         });
-      } else if (status === '0' || status === 'допущенные' || status === 'допущен' || status.includes('допущ')) {
+      } else if (statusLower.includes('допущ')) {
         toast({
           title: "✅ Допущенные",
           description: `Коробка ${foundPackage.boxNumber || 'без номера'} - допущена к отправке`,
@@ -159,18 +184,18 @@ const Index = () => {
       } else {
         toast({
           title: "ℹ️ Статус",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - ${foundPackage.status}`,
+          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - ${status}`,
         });
       }
     } else {
       // Показываем статус "Излишки"
       toast({
         title: "⚠️ Излишки",
-        description: `Значение ${scannedValue} не найдено в базе - отмечено как излишки`,
+        description: `Значение ${scannedValue} не найдено в базе или уже обработано - отмечено как излишки`,
         variant: "destructive",
       });
     }
-  }, [scanningState.packages, scanningState.isActive, addScanResult, toast]);
+  }, [scanningState.packages, scanningState.isActive, scanningState.processedPackageIndices, addScanResult, toast]);
 
   const handleStartScanning = () => {
     startScanning();

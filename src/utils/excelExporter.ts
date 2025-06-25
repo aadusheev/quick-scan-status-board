@@ -7,39 +7,18 @@ export const exportScanningResults = (
   originalPackages: PackageInfo[],
   scanResults: ScanResult[]
 ) => {
-  // Создаем map для быстрого поиска результатов сканирования
-  const scanResultsMap = new Map<string, ScanResult>();
+  // Создаем map для быстрого поиска результатов сканирования по индексу строки
+  const scanResultsByIndex = new Map<number, ScanResult>();
   
   scanResults.forEach(result => {
-    if (result.packageInfo) {
-      // Используем уникальные идентификаторы для поиска
-      const keys = [
-        result.packageInfo.barcode,
-        result.packageInfo.boxNumber,
-        result.packageInfo.shipmentId,
-        result.packageInfo.shipmentNumber
-      ].filter(Boolean);
-      
-      keys.forEach(key => {
-        if (key) {
-          scanResultsMap.set(key.toLowerCase().trim(), result);
-        }
-      });
+    if (result.processedRowIndex !== undefined) {
+      scanResultsByIndex.set(result.processedRowIndex, result);
     }
   });
 
   // Подготавливаем данные для экспорта
-  const exportData = originalPackages.map(pkg => {
-    // Ищем результат сканирования для этого пакета
-    const scanResult = [
-      pkg.barcode,
-      pkg.boxNumber,
-      pkg.shipmentId,
-      pkg.shipmentNumber
-    ]
-      .filter(Boolean)
-      .map(key => scanResultsMap.get(key!.toLowerCase().trim()))
-      .find(result => result !== undefined);
+  const exportData = originalPackages.map((pkg, index) => {
+    const scanResult = scanResultsByIndex.get(index);
 
     return {
       'Номер коробки': pkg.boxNumber || '',
