@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Package, AlertTriangle, X, CheckCircle } from 'lucide-react';
 
 export interface PackageInfo {
@@ -16,6 +15,13 @@ interface StatusDisplayProps {
 }
 
 export const StatusDisplay: React.FC<StatusDisplayProps> = ({ packageInfo, lastScannedCode }) => {
+  // Добавляем логирование изменений
+  useEffect(() => {
+    console.log('=== StatusDisplay Update ===');
+    console.log('Package info:', packageInfo);
+    console.log('Last scanned code:', lastScannedCode);
+  }, [packageInfo, lastScannedCode]);
+
   // Определяем какое поле было отсканировано
   const getScannedFieldType = () => {
     if (!packageInfo || !lastScannedCode) return null;

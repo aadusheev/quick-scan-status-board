@@ -14,10 +14,14 @@ export const useBarcodeScanning = (
   const { toast } = useToast();
 
   const handleBarcodeScanned = useCallback((scannedValue: string) => {
+    console.log('=== SCAN START ===');
     console.log('Scanned value:', scannedValue);
+    console.log('Is scanning active:', isScanning);
+    console.log('Processed rows:', Array.from(processedRows));
     
     // Check if scanning is active
     if (!isScanning) {
+      console.log('❌ Scanning not active - showing warning');
       toast({
         title: "❌ Не начато сканирование",
         description: "Нажмите кнопку 'Начать сканирование' перед началом работы",
@@ -27,8 +31,10 @@ export const useBarcodeScanning = (
     }
     
     const searchResult = findPackageByBarcode(packages, scannedValue);
+    console.log('Search result:', searchResult);
     
     if (!searchResult) {
+      console.log('❌ Package not found - marking as excess');
       // Не найдено в базе - излишки
       const scanResult: ScanResult = {
         scannedValue,
@@ -46,14 +52,19 @@ export const useBarcodeScanning = (
         variant: "destructive",
       });
       
+      console.log('=== SCAN END (EXCESS) ===');
       return { packageInfo: null, scannedValue };
     }
 
     const { packageInfo: foundPackage, scannedField, allMatches } = searchResult;
+    console.log('Found package:', foundPackage);
+    console.log('Scanned field:', scannedField);
+    console.log('All matches count:', allMatches.length);
     
     // Определяем статус
     let status: string;
     const normalizedStatus = foundPackage.status.toLowerCase().trim();
+    console.log('Original status:', foundPackage.status, '| Normalized:', normalizedStatus);
     
     if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ')) {
       status = 'Недопущенные';
@@ -67,29 +78,40 @@ export const useBarcodeScanning = (
       status = foundPackage.status;
     }
 
+    console.log('Determined status:', status);
+
     let processedRowIndex: number | undefined;
     let isExcess = false;
 
     // Для ID отправления и номера отправления - особая логика
     if (scannedField === 'shipmentId' || scannedField === 'shipmentNumber') {
+      console.log('Processing shipment ID/Number logic');
+      console.log('All matches for this field:', allMatches.map(m => ({ index: m.index, processed: processedRows.has(m.index) })));
+      
       // Найдем первую свободную строку среди всех совпадений
       const availableRow = allMatches.find(match => !processedRows.has(match.index));
       
       if (availableRow) {
         processedRowIndex = availableRow.index;
+        console.log('Found available row:', processedRowIndex);
       } else {
         // Все строки уже заполнены - это излишки
         isExcess = true;
         status = 'Излишки';
+        console.log('All rows processed - marking as excess');
       }
     } else {
+      console.log('Processing barcode/boxNumber logic');
       // Для штрихкода и номера коробки - обычная логика
       const packageIndex = packages.findIndex(pkg => pkg === foundPackage);
+      console.log('Package index:', packageIndex, '| Already processed:', processedRows.has(packageIndex));
+      
       if (packageIndex !== -1 && !processedRows.has(packageIndex)) {
         processedRowIndex = packageIndex;
       } else {
         isExcess = true;
         status = 'Излишки';
+        console.log('Package already processed or not found - marking as excess');
       }
     }
     
@@ -103,16 +125,20 @@ export const useBarcodeScanning = (
       processedRowIndex
     };
     
+    console.log('Final scan result:', scanResult);
+    
     addScanResult(scanResult);
     
     // Show notification
     if (isExcess) {
+      console.log('Showing excess notification');
       toast({
         title: "⚠️ Излишки",
         description: `Все строки для этого ${scannedField === 'shipmentId' ? 'ID отправления' : 'номера отправления'} уже обработаны`,
         variant: "destructive",
       });
     } else {
+      console.log('Showing status notification:', status);
       if (status === 'Недопущенные') {
         toast({
           title: "❌ Недопущенные",
@@ -144,6 +170,7 @@ export const useBarcodeScanning = (
       }
     }
 
+    console.log('=== SCAN END ===');
     return { packageInfo: foundPackage, scannedValue };
   }, [packages, isScanning, processedRows, addScanResult, toast]);
 
