@@ -63,13 +63,17 @@ export const useVoiceAnnouncement = (options: VoiceAnnouncementOptions = {}) => 
   const announceStatus = useCallback((status: string) => {
     const normalizedStatus = status.toLowerCase().trim();
     
-    if (normalizedStatus === 'допущенные' || normalizedStatus === 'допущен' || normalizedStatus.includes('допущ') || normalizedStatus === '0') {
-      speak('ОК');
-    } else if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ') ||
-               normalizedStatus === 'перелимит' || normalizedStatus.includes('перелимит') ||
-               normalizedStatus === 'досмотр' || normalizedStatus.includes('досмотр') ||
-               normalizedStatus === 'излишки' || status === 'Недопущенные') {
+    // Сначала проверяем все статусы для звука ошибки
+    if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || 
+        normalizedStatus.includes('недопущ') ||
+        normalizedStatus === 'перелимит' || normalizedStatus.includes('перелимит') ||
+        normalizedStatus === 'досмотр' || normalizedStatus.includes('досмотр') ||
+        normalizedStatus === 'излишки' || status === 'Недопущенные') {
       playErrorSound();
+    } else if (normalizedStatus === 'допущенные' || normalizedStatus === 'допущен' || 
+               normalizedStatus.includes('допущ') || normalizedStatus === '0') {
+      // Только после проверки на ошибки проверяем допущенные
+      speak('ОК');
     }
   }, [speak, playErrorSound]);
 
