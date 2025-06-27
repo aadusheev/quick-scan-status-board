@@ -1,4 +1,5 @@
 
+
 import { useCallback } from 'react';
 import { PackageInfo } from '@/components/StatusDisplay';
 import { findPackageByBarcode } from '@/utils/excelParser';
@@ -150,30 +151,30 @@ export const useBarcodeScanning = (
       if (status === 'Недопущенные') {
         toast({
           title: "❌ Недопущенные",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - недопущена к отправке`,
+          description: `Код ${scannedValue} - недопущен к отправке`,
           variant: "destructive",
         });
       } else if (status === 'Перелимит') {
         toast({
           title: "❌ Перелимит",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - превышен лимит`,
+          description: `Код ${scannedValue} - превышен лимит`,
           variant: "destructive",
         });
       } else if (status === 'Досмотр') {
         toast({
           title: "⚠️ Досмотр",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - требуется досмотр`,
+          description: `Код ${scannedValue} - требуется досмотр`,
           variant: "destructive",
         });
       } else if (status === 'Допущенные') {
         toast({
           title: "✅ Допущенные",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - допущена к отправке`,
+          description: `Код ${scannedValue} - допущен к отправке`,
         });
       } else {
         toast({
           title: "ℹ️ Статус",
-          description: `Коробка ${foundPackage.boxNumber || 'без номера'} - ${foundPackage.status}`,
+          description: `Код ${scannedValue} - ${foundPackage.status}`,
         });
       }
     }
@@ -184,3 +185,4 @@ export const useBarcodeScanning = (
 
   return { handleBarcodeScanned };
 };
+
