@@ -4,6 +4,7 @@ import { PackageInfo } from '@/components/StatusDisplay';
 import { findPackageByBarcode } from '@/utils/excelParser';
 import { ScanResult } from '@/hooks/useScanningMode';
 import { useToast } from '@/hooks/use-toast';
+import { useVoiceAnnouncement } from '@/hooks/useVoiceAnnouncement';
 
 export const useBarcodeScanning = (
   packages: PackageInfo[],
@@ -12,6 +13,7 @@ export const useBarcodeScanning = (
   addScanResult: (result: ScanResult) => void
 ) => {
   const { toast } = useToast();
+  const { announceStatus } = useVoiceAnnouncement();
 
   const handleBarcodeScanned = useCallback((scannedValue: string) => {
     console.log('=== SCAN START ===');
@@ -45,6 +47,9 @@ export const useBarcodeScanning = (
       };
       
       addScanResult(scanResult);
+      
+      // Голосовое оповещение для излишков
+      announceStatus('излишки');
       
       toast({
         title: "⚠️ Излишки",
@@ -129,6 +134,9 @@ export const useBarcodeScanning = (
     
     addScanResult(scanResult);
     
+    // Голосовое оповещение для статуса
+    announceStatus(status);
+    
     // Show notification
     if (isExcess) {
       console.log('Showing excess notification');
@@ -172,7 +180,7 @@ export const useBarcodeScanning = (
 
     console.log('=== SCAN END ===');
     return { packageInfo: foundPackage, scannedValue };
-  }, [packages, isScanning, processedRows, addScanResult, toast]);
+  }, [packages, isScanning, processedRows, addScanResult, toast, announceStatus]);
 
   return { handleBarcodeScanned };
 };
