@@ -68,7 +68,7 @@ export const useVoiceAnnouncement = (options: VoiceAnnouncementOptions = {}) => 
     } else if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ') ||
                normalizedStatus === 'перелимит' || normalizedStatus.includes('перелимит') ||
                normalizedStatus === 'досмотр' || normalizedStatus.includes('досмотр') ||
-               normalizedStatus === 'излишки') {
+               normalizedStatus === 'излишки' || status === 'Недопущенные') {
       playErrorSound();
     }
   }, [speak, playErrorSound]);
