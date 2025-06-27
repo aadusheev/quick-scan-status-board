@@ -51,7 +51,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, disabled
         setIsActive(false);
         setShowManualHint(false);
       }
-    }, 400); // 400мс задержка для завершения сканирования
+    }, 100); // 100мс задержка для завершения сканирования
   }, [onScan, isManualInput]);
 
   useEffect(() => {
