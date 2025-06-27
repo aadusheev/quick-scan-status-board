@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -33,18 +32,14 @@ const Index = () => {
   );
 
   const handleFileUpload = async (file: File) => {
-    // Блокируем загрузку нового файла во время активного сканирования
-    if (scanningState.isActive) {
-      toast({
-        title: "Ошибка",
-        description: "Завершите текущее сканирование перед загрузкой нового файла",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       console.log('Starting file upload:', file.name, file.size, 'bytes');
+      
+      // Всегда очищаем сессию перед загрузкой нового файла
+      clearSession();
+      setCurrentPackage(null);
+      setLastScannedCode('');
+      setHasFile(false);
       
       toast({
         title: "Загрузка файла",
@@ -64,16 +59,13 @@ const Index = () => {
         return;
       }
 
-      // Очищаем предыдущую сессию и устанавливаем новые пакеты
-      clearSession();
+      // Устанавливаем новые пакеты
       setPackages(parsedPackages);
       setHasFile(true);
-      setCurrentPackage(null);
-      setLastScannedCode('');
       
       toast({
         title: "Файл загружен",
-        description: `Успешно обработано ${parsedPackages.length} записей`,
+        description: `Успешно обработано ${parsedPackages.length} записей. Готов к началу сканирования.`,
       });
 
       console.log('Loaded packages:', parsedPackages);
