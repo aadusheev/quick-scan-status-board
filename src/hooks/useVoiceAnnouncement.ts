@@ -32,27 +32,46 @@ export const useVoiceAnnouncement = (options: VoiceAnnouncementOptions = {}) => 
     speechSynthesis.speak(utterance);
   }, [volume, rate, pitch]);
 
+  const playErrorSound = useCallback(() => {
+    // Создаем аудио контекст для воспроизведения звука ошибки
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Настройки для звука ошибки
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+      oscillator.frequency.setValueAtTime(400, audioContext.currentTime + 0.3);
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.4);
+
+      console.log('Воспроизводится звук ошибки');
+    } catch (error) {
+      console.warn('Не удалось воспроизвести звук ошибки:', error);
+    }
+  }, []);
+
   const announceStatus = useCallback((status: string) => {
     const normalizedStatus = status.toLowerCase().trim();
     
-    let message = '';
-    
     if (normalizedStatus === 'допущенные' || normalizedStatus === 'допущен' || normalizedStatus.includes('допущ') || normalizedStatus === '0') {
-      message = 'ОК';
-    } else if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ')) {
-      message = 'недопущено';
-    } else if (normalizedStatus === 'перелимит' || normalizedStatus.includes('перелимит')) {
-      message = 'перелимит';
-    } else if (normalizedStatus === 'досмотр' || normalizedStatus.includes('досмотр')) {
-      message = 'досмотр';
-    } else if (normalizedStatus === 'излишки') {
-      message = 'излишки';
+      speak('ОК');
+    } else if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ') ||
+               normalizedStatus === 'перелимит' || normalizedStatus.includes('перелимит') ||
+               normalizedStatus === 'досмотр' || normalizedStatus.includes('досмотр') ||
+               normalizedStatus === 'излишки') {
+      playErrorSound();
     }
-    
-    if (message) {
-      speak(message);
-    }
-  }, [speak]);
+  }, [speak, playErrorSound]);
 
   return { speak, announceStatus };
 };
