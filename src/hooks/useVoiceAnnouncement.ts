@@ -32,46 +32,27 @@ export const useVoiceAnnouncement = (options: VoiceAnnouncementOptions = {}) => 
     speechSynthesis.speak(utterance);
   }, [volume, rate, pitch]);
 
-  const playSiren = useCallback(() => {
-    // Создаем звук сирены используя Speech Synthesis API
-    // Используем специальные символы для создания звука сирены
-    const sirenSound = 'у-у-у-у-у-у-у-у';
-    
-    if (!('speechSynthesis' in window)) {
-      console.warn('Speech Synthesis API не поддерживается в этом браузере');
-      return;
-    }
-
-    speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(sirenSound);
-    utterance.volume = volume;
-    utterance.rate = 0.5; // Медленнее для эффекта сирены
-    utterance.pitch = 0.1; // Низкий тон
-    utterance.lang = 'ru-RU';
-
-    console.log('Воспроизводится звук сирены');
-    speechSynthesis.speak(utterance);
-  }, [volume]);
-
   const announceStatus = useCallback((status: string) => {
     const normalizedStatus = status.toLowerCase().trim();
     
+    let message = '';
+    
     if (normalizedStatus === 'допущенные' || normalizedStatus === 'допущен' || normalizedStatus.includes('допущ') || normalizedStatus === '0') {
-      speak('ОК');
-    } else if (
-      normalizedStatus === 'недопущенные' || 
-      normalizedStatus === 'недопущен' || 
-      normalizedStatus.includes('недопущ') ||
-      normalizedStatus === 'перелимит' || 
-      normalizedStatus.includes('перелимит') ||
-      normalizedStatus === 'досмотр' || 
-      normalizedStatus.includes('досмотр') ||
-      normalizedStatus === 'излишки'
-    ) {
-      playSiren();
+      message = 'ОК';
+    } else if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ')) {
+      message = 'недопущено';
+    } else if (normalizedStatus === 'перелимит' || normalizedStatus.includes('перелимит')) {
+      message = 'перелимит';
+    } else if (normalizedStatus === 'досмотр' || normalizedStatus.includes('досмотр')) {
+      message = 'досмотр';
+    } else if (normalizedStatus === 'излишки') {
+      message = 'излишки';
     }
-  }, [speak, playSiren]);
+    
+    if (message) {
+      speak(message);
+    }
+  }, [speak]);
 
-  return { speak, announceStatus, playSiren };
+  return { speak, announceStatus };
 };
