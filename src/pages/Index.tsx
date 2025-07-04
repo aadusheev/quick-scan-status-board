@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -15,6 +14,7 @@ const Index = () => {
   const [currentPackage, setCurrentPackage] = useState<PackageInfo | null>(null);
   const [lastScannedCode, setLastScannedCode] = useState<string>('');
   const [hasFile, setHasFile] = useState(false);
+  const [forceStatsRefresh, setForceStatsRefresh] = useState(0);
   const { toast } = useToast();
   
   const {
@@ -49,8 +49,11 @@ const Index = () => {
       setLastScannedCode('');
       setHasFile(false);
       
-      // Принудительно вызываем повторный рендер компонента статистики
-      await new Promise(resolve => setTimeout(resolve, 0));
+      // Принудительно обновляем компонент статистики
+      setForceStatsRefresh(prev => prev + 1);
+      
+      // Ждем, чтобы состояние успело обновиться
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       toast({
         title: "Загрузка файла",
@@ -74,6 +77,9 @@ const Index = () => {
       setPackages(parsedPackages);
       setHasFile(true);
       
+      // Еще раз принудительно обновляем статистику
+      setForceStatsRefresh(prev => prev + 1);
+      
       toast({
         title: "Файл загружен",
         description: `Успешно обработано ${parsedPackages.length} записей. Готов к началу сканирования.`,
@@ -96,6 +102,7 @@ const Index = () => {
       setHasFile(false);
       setCurrentPackage(null);
       setLastScannedCode('');
+      setForceStatsRefresh(prev => prev + 1);
     }
   };
 
@@ -180,7 +187,7 @@ const Index = () => {
 
         {/* Статистика сканирования */}
         {hasPackagesLoaded && (
-          <div className="mb-6">
+          <div className="mb-6" key={forceStatsRefresh}>
             <ScanningStats 
               scanResults={scanningState.scanResults} 
               packages={currentPackages}
