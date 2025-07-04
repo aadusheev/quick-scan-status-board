@@ -3,6 +3,7 @@ import { FileUpload } from '@/components/FileUpload';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { StatusDisplay, PackageInfo } from '@/components/StatusDisplay';
 import { ScanningControls } from '@/components/ScanningControls';
+import { ScanningStats } from '@/components/ScanningStats';
 import { parseExcelFile } from '@/utils/excelParser';
 import { exportScanningResults } from '@/utils/excelExporter';
 import { useScanningMode } from '@/hooks/useScanningMode';
@@ -162,6 +163,13 @@ const Index = () => {
             onStopScanning={handleStopScanning}
             onExportResults={handleExportResults}
           />
+        )}
+
+        {/* Статистика сканирования */}
+        {hasPackagesLoaded && scanningState.scanResults.length > 0 && (
+          <div className="mb-6">
+            <ScanningStats scanResults={scanningState.scanResults} />
+          </div>
         )}
 
         {/* Сканер штрихкодов */}
