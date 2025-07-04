@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -36,11 +37,15 @@ const Index = () => {
     try {
       console.log('Starting file upload:', file.name, file.size, 'bytes');
       
-      // Всегда очищаем сессию перед загрузкой нового файла
+      // Принудительно очищаем абсолютно все данные перед загрузкой нового файла
+      console.log('Clearing all session data before new file upload');
       clearSession();
       setCurrentPackage(null);
       setLastScannedCode('');
       setHasFile(false);
+      
+      // Дополнительно принудительно очищаем localStorage на случай если что-то осталось
+      localStorage.removeItem('scanning-session');
       
       toast({
         title: "Загрузка файла",
@@ -60,7 +65,7 @@ const Index = () => {
         return;
       }
 
-      // Устанавливаем новые пакеты
+      // Устанавливаем новые пакеты (это создаст новую сессию)
       setPackages(parsedPackages);
       setHasFile(true);
       
@@ -69,7 +74,7 @@ const Index = () => {
         description: `Успешно обработано ${parsedPackages.length} записей. Готов к началу сканирования.`,
       });
 
-      console.log('Loaded packages:', parsedPackages);
+      console.log('New session started with packages:', parsedPackages.length);
     } catch (error) {
       console.error('File upload error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
@@ -80,6 +85,8 @@ const Index = () => {
         variant: "destructive",
       });
       
+      // При ошибке также очищаем все данные
+      clearSession();
       setHasFile(false);
       setCurrentPackage(null);
       setLastScannedCode('');
