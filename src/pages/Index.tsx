@@ -39,13 +39,18 @@ const Index = () => {
       
       // Принудительно очищаем абсолютно все данные перед загрузкой нового файла
       console.log('Clearing all session data before new file upload');
+      
+      // Сначала очищаем localStorage
+      localStorage.removeItem('scanning-session');
+      
+      // Затем очищаем состояние
       clearSession();
       setCurrentPackage(null);
       setLastScannedCode('');
       setHasFile(false);
       
-      // Дополнительно принудительно очищаем localStorage на случай если что-то осталось
-      localStorage.removeItem('scanning-session');
+      // Принудительно вызываем повторный рендер компонента статистики
+      await new Promise(resolve => setTimeout(resolve, 0));
       
       toast({
         title: "Загрузка файла",
@@ -86,6 +91,7 @@ const Index = () => {
       });
       
       // При ошибке также очищаем все данные
+      localStorage.removeItem('scanning-session');
       clearSession();
       setHasFile(false);
       setCurrentPackage(null);

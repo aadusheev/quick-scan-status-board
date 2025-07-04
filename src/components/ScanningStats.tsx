@@ -25,7 +25,7 @@ export const ScanningStats: React.FC<ScanningStatsProps> = ({ scanResults, packa
     const totalStats: { [key: string]: number } = {};
     
     packages.forEach(pkg => {
-      const normalizedStatus = pkg.status.toLowerCase().trim();
+      const normalizedStatus = pkg.status?.toLowerCase().trim() || '';
       let status: string;
       
       if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ')) {
@@ -37,7 +37,7 @@ export const ScanningStats: React.FC<ScanningStatsProps> = ({ scanResults, packa
       } else if (normalizedStatus === '0' || normalizedStatus === 'допущенные' || normalizedStatus === 'допущен' || normalizedStatus.includes('допущ')) {
         status = 'Допущенные';
       } else {
-        status = pkg.status;
+        status = pkg.status || 'Неизвестно';
       }
       
       totalStats[status] = (totalStats[status] || 0) + 1;
