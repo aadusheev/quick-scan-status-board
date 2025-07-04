@@ -166,9 +166,12 @@ const Index = () => {
         )}
 
         {/* Статистика сканирования */}
-        {hasPackagesLoaded && scanningState.scanResults.length > 0 && (
+        {hasPackagesLoaded && (
           <div className="mb-6">
-            <ScanningStats scanResults={scanningState.scanResults} />
+            <ScanningStats 
+              scanResults={scanningState.scanResults} 
+              packages={currentPackages}
+            />
           </div>
         )}
 

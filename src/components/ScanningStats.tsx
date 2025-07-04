@@ -1,48 +1,102 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { CheckCircle, X, AlertTriangle, Package } from 'lucide-react';
 import { ScanResult } from '@/hooks/useScanningMode';
+import { PackageInfo } from '@/components/StatusDisplay';
 
 interface ScanningStatsProps {
   scanResults: ScanResult[];
+  packages: PackageInfo[];
 }
 
 interface StatusStats {
   [key: string]: {
-    count: number;
+    scanned: number;
+    total: number;
     icon: React.ComponentType<any>;
-    variant: 'default' | 'secondary' | 'destructive' | 'outline';
     color: string;
   };
 }
 
-export const ScanningStats: React.FC<ScanningStatsProps> = ({ scanResults }) => {
-  // Подсчитываем статистику по статусам
-  const getStatusStats = (): StatusStats => {
-    const stats: StatusStats = {
-      'Допущенные': { count: 0, icon: CheckCircle, variant: 'default', color: 'text-green-600' },
-      'Недопущенные': { count: 0, icon: X, variant: 'destructive', color: 'text-red-600' },
-      'Перелимит': { count: 0, icon: X, variant: 'destructive', color: 'text-red-600' },
-      'Досмотр': { count: 0, icon: AlertTriangle, variant: 'secondary', color: 'text-yellow-600' },
-      'Излишки': { count: 0, icon: Package, variant: 'outline', color: 'text-orange-600' },
-    };
+export const ScanningStats: React.FC<ScanningStatsProps> = ({ scanResults, packages }) => {
+  // Подсчитываем общую статистику по статусам из реестра
+  const getTotalStats = (): { [key: string]: number } => {
+    const totalStats: { [key: string]: number } = {};
+    
+    packages.forEach(pkg => {
+      const normalizedStatus = pkg.status.toLowerCase().trim();
+      let status: string;
+      
+      if (normalizedStatus === 'недопущенные' || normalizedStatus === 'недопущен' || normalizedStatus.includes('недопущ')) {
+        status = 'Недопущенные';
+      } else if (normalizedStatus === 'перелимит' || normalizedStatus.includes('перелимит')) {
+        status = 'Перелимит';
+      } else if (normalizedStatus === 'досмотр' || normalizedStatus.includes('досмотр')) {
+        status = 'Досмотр';
+      } else if (normalizedStatus === '0' || normalizedStatus === 'допущенные' || normalizedStatus === 'допущен' || normalizedStatus.includes('допущ')) {
+        status = 'Допущенные';
+      } else {
+        status = pkg.status;
+      }
+      
+      totalStats[status] = (totalStats[status] || 0) + 1;
+    });
+    
+    return totalStats;
+  };
 
+  // Подсчитываем статистику отсканированных
+  const getScannedStats = (): { [key: string]: number } => {
+    const scannedStats: { [key: string]: number } = {};
+    
     scanResults.forEach(result => {
       const status = result.status;
-      if (stats[status]) {
-        stats[status].count++;
-      } else {
-        // Для неизвестных статусов создаем запись
-        stats[status] = { 
-          count: 1, 
-          icon: Package, 
-          variant: 'outline', 
-          color: 'text-blue-600' 
-        };
-      }
+      scannedStats[status] = (scannedStats[status] || 0) + 1;
     });
+    
+    return scannedStats;
+  };
+
+  // Объединяем статистику
+  const getStatusStats = (): StatusStats => {
+    const totalStats = getTotalStats();
+    const scannedStats = getScannedStats();
+    const stats: StatusStats = {};
+
+    // Добавляем все статусы из реестра
+    Object.keys(totalStats).forEach(status => {
+      let icon = Package;
+      let color = 'text-blue-600';
+
+      if (status === 'Допущенные') {
+        icon = CheckCircle;
+        color = 'text-green-600';
+      } else if (status === 'Недопущенные' || status === 'Перелимит') {
+        icon = X;
+        color = 'text-red-600';
+      } else if (status === 'Досмотр') {
+        icon = AlertTriangle;
+        color = 'text-yellow-600';
+      }
+
+      stats[status] = {
+        scanned: scannedStats[status] || 0,
+        total: totalStats[status],
+        icon,
+        color
+      };
+    });
+
+    // Добавляем излишки если есть
+    if (scannedStats['Излишки']) {
+      stats['Излишки'] = {
+        scanned: scannedStats['Излишки'],
+        total: 0,
+        icon: Package,
+        color: 'text-orange-600'
+      };
+    }
 
     return stats;
   };
@@ -50,7 +104,7 @@ export const ScanningStats: React.FC<ScanningStatsProps> = ({ scanResults }) => 
   const statusStats = getStatusStats();
   const totalScanned = scanResults.length;
 
-  if (totalScanned === 0) {
+  if (packages.length === 0) {
     return null;
   }
 
@@ -64,8 +118,6 @@ export const ScanningStats: React.FC<ScanningStatsProps> = ({ scanResults }) => 
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {Object.entries(statusStats).map(([status, stats]) => {
-            if (stats.count === 0) return null;
-            
             const IconComponent = stats.icon;
             
             return (
@@ -75,11 +127,8 @@ export const ScanningStats: React.FC<ScanningStatsProps> = ({ scanResults }) => 
                   <span className="font-medium text-sm">{status}</span>
                 </div>
                 <div className="text-2xl font-bold text-gray-800">
-                  {stats.count}
+                  {status === 'Излишки' ? stats.scanned : `${stats.scanned}/${stats.total}`}
                 </div>
-                <Badge variant={stats.variant} className="mt-1 text-xs">
-                  {((stats.count / totalScanned) * 100).toFixed(1)}%
-                </Badge>
               </div>
             );
           })}
